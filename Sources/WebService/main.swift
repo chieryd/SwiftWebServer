@@ -1,112 +1,39 @@
-import PerfectHTTP
-import PerfectHTTPServer
+import PerfectMongoDB
+//import PerfectRequestLogger
 
-
-// 注册您自己的路由和请求／响应句柄
-var routes = Routes()
-
-let handler = {
-    (request: HTTPRequest, response: HTTPResponse) in
-    
-    print("params")
-    print("-----------")
-    print(request.postParams)
-    
-    print("postBodyBytes")
-    print("-----------")
-    print(request.postBodyBytes ?? "")
-    
-    print("postBodyString")
-    print("-----------")
-    print(request.postBodyString ?? "")
-    
-    print("postFileUploads")
-    print("-----------")
-    print(request.postFileUploads ?? "")
-    
-    
-    if let decodedJson = try? request.postBodyString?.jsonDecode() as? [String: String] {
-        let callStack = decodedJson!["callStack"]
-        let type = decodedJson!["type"]
-        let name = decodedJson!["name"]
-        let reason = decodedJson!["reason"]
-        let appInfo = decodedJson!["appInfo"]
-        let topVC = decodedJson!["topVC"]
-        
-        
-        response.setHeader(.contentType, value: "application/json")
-        response.appendBody(string: "{\"a\":\"b\"}")
-            .completed()
-    }
-    else {
-        
-    }
-    
-    response.setHeader(.contentType, value: "application/json")
-    response.appendBody(string: "{\"a\":\"b\"}")
-        .completed()
+enum ErrorsToThrow: Error {
+    case nameIsEmpty
 }
 
-let putHandler = {
-    (request: HTTPRequest, response: HTTPResponse) in
-    
-    print("params")
-    print("-----------")
-    print(request.postParams)
-    
-    print("postBodyBytes")
-    print("-----------")
-    print(request.postBodyBytes ?? "")
-    
-    print("postBodyString")
-    print("-----------")
-    print(request.postBodyString ?? "")
-    
-    print("postFileUploads")
-    print("-----------")
-    print(request.postFileUploads ?? "")
-    
-    if let decodedJson = try? request.postBodyString?.jsonDecode() as? [String: String] {
-        let callStack = decodedJson!["callStack"]
-        let type = decodedJson!["type"]
-        let name = decodedJson!["name"]
-        let reason = decodedJson!["reason"]
-        let appInfo = decodedJson!["appInfo"]
-        let topVC = decodedJson!["topVC"]
-        
-        
-        response.setHeader(.contentType, value: "application/json")
-        response.appendBody(string: "{\"a\":\"b\"}")
-            .completed()
-    }
-    else {
-        
-    }
-    
-    response.setHeader(.contentType, value: "application/json")
-    response.appendBody(string: "{\"a\":\"b\"}")
-        .completed()
+#if os(Linux)
+
+MySQLConnector.host = "localhost";
+MySQLConnector.username = "root";
+MySQLConnector.password = "Chason1208";
+MySQLConnector.port = 3306;
+MySQLConnector.database = "WebService";
+
+RequestLogFile.location="./RequestLog.log";
+
+let server = NetworkServer.init(serverName: "localhost", serverPort: 80);
+server.start();
+
+#else
+
+let client = try! MongoClient(uri: "mongodb://localhost")
+let db = client.getDatabase(name: "test")
+let collection = MongoCollection(
+    client: client,
+    databaseName: "test",
+    collectionName: "testCrashCollection")
+
+
+defer {
+    collection.close()
+    db.close()
+    client.close()
 }
 
-routes.add(method: .put, uri: "/put", handler: putHandler)
-
-routes.add(method: .post, uri: "/upload", handler: handler)
-
-routes.add(method: .get, uri: "/temp") {
-    request, response in
-    
-    response.setHeader(.contentType, value: "application/json")
-    response.appendBody(string: "{\"a\":\"b\"}")
-        .completed()
-    //    response.setHeader(.contentType, value: "text/html")
-    //    response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
-    //        .completed()
-}
-
-do {
-    // 启动HTTP服务器
-    try HTTPServer.launch(
-        .server(name: "www.example.ca", port: 8181, routes: routes))
-} catch {
-    fatalError("\(error)") // fatal error launching one of the servers
-}
+let server = NetworkServer.init(serverName: "localhost", serverPort: 8181);
+server.start();
+#endif
